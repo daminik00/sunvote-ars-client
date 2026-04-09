@@ -1,0 +1,25 @@
+# Source
+src/
+__tests__/
+drivers/
+
+# Config
+tsconfig.json
+tsup.config.ts
+vitest.config.*
+.eslintrc*
+.prettierrc*
+
+# Dev / CI
+.github/
+.gitignore
+.editorconfig
+.vscode/
+.idea/
+
+# Misc
+*.tsbuildinfo
+coverage/
+.env
+.env.*
+*.map

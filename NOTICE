@@ -1,0 +1,20 @@
+sunvote-ars-client
+Copyright 2026 sunvote-ars-client contributors
+
+DISCLAIMER
+
+This is an UNOFFICIAL, third-party open-source library for communicating
+with SunVote audience response system (ARS) hardware. This project is NOT
+affiliated with, endorsed by, sponsored by, or in any way officially
+connected with Changsha SunVote Information Technology Co., Ltd. or any
+of its subsidiaries or affiliates.
+
+"SunVote" is a trademark of Changsha SunVote Information Technology Co.,
+Ltd. Use of this name is for identification and interoperability purposes
+only, under the doctrine of nominative fair use.
+
+This library was developed through clean-room reverse engineering of the
+serial communication protocol for interoperability purposes, with
+authorization from an authorized reseller. No proprietary source code,
+firmware, or confidential documentation from SunVote was used in its
+development.
