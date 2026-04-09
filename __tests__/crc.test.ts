@@ -1,0 +1,33 @@
+import { describe, it, expect } from 'vitest';
+import { crc16 } from '../src/crc.js';
+
+describe('crc16', () => {
+  it('should compute CRC for idle poll payload', () => {
+    const data = [0x11, 0x00, 0x00, 0x0f, 0x0c, 0x00, 0x00, 0x00, 0x00, 0x00];
+    expect(crc16(data)).toBe(0x7ad9);
+  });
+
+  it('should compute CRC for idle poll with flags=0xAF', () => {
+    const data = [0x11, 0x00, 0x00, 0xaf, 0x0c, 0x00, 0x00, 0x00, 0x00, 0x00];
+    expect(crc16(data)).toBe(0xbfd6);
+  });
+
+  it('should compute CRC for start vote payload', () => {
+    const data = [0x15, 0x01, 0x00, 0xc1, 0x02, 0x05, 0x02, 0x06, 0x01, 0x00];
+    expect(crc16(data)).toBe(0xb75f);
+  });
+
+  it('should compute CRC for poll payload', () => {
+    const data = [0x15, 0x01, 0x00, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00];
+    expect(crc16(data)).toBe(0x7c03);
+  });
+
+  it('should accept Buffer input', () => {
+    const data = Buffer.from([0x11, 0x00, 0x00, 0x0f, 0x0c, 0x00, 0x00, 0x00, 0x00, 0x00]);
+    expect(crc16(data)).toBe(0x7ad9);
+  });
+
+  it('should return 0 for empty input', () => {
+    expect(crc16([])).toBe(0x0000);
+  });
+});

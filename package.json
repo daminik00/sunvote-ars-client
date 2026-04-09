@@ -1,0 +1,68 @@
+{
+  "name": "sunvote-ars-client",
+  "version": "1.0.0",
+  "description": "Unofficial open-source client for SunVote ARS (Audience Response System) hardware. Not affiliated with Changsha SunVote Information Technology Co., Ltd.",
+  "keywords": [
+    "sunvote",
+    "voting",
+    "audience-response",
+    "clicker",
+    "serial",
+    "pvs-2010",
+    "ftdi",
+    "electron"
+  ],
+  "author": "daminik00 <dev.daminik00@gmail.com>",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/daminik00/sunvote-ars-client.git"
+  },
+  "bugs": {
+    "url": "https://github.com/daminik00/sunvote-ars-client/issues"
+  },
+  "homepage": "https://github.com/daminik00/sunvote-ars-client#readme",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.mts",
+        "default": "./dist/index.mjs"
+      },
+      "require": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      }
+    }
+  },
+  "files": [
+    "dist",
+    "LICENSE",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "tsc --noEmit",
+    "prepublishOnly": "npm run lint && npm run test && npm run build"
+  },
+  "dependencies": {
+    "serialport": "^12.0.0"
+  },
+  "devDependencies": {
+    "tsup": "^8.0.0",
+    "typescript": "^5.3.0",
+    "vitest": "^1.0.0",
+    "@types/node": "^20.0.0"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
