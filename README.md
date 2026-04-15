@@ -249,9 +249,54 @@ All debug output uses `console.debug()` prefixed with `[sunvote]` and ISO timest
 
 - **macOS**: Port paths look like `/dev/tty.usbserial-XXXX`. FTDI drivers are built into macOS 10.15+.
 - **Linux**: Port paths look like `/dev/ttyUSB0`. You may need to add your user to the `dialout` group: `sudo usermod -aG dialout $USER`.
-- **Windows**: Port paths look like `COM3`. FTDI drivers may need to be installed from [ftdichip.com](https://ftdichip.com/drivers/).
+- **Windows**: Port paths look like `COM3`. On Windows 10/11, FTDI drivers usually install automatically via Windows Update a few seconds after the receiver is plugged in. See [Driver Setup](#driver-setup) below.
 
 The SDK auto-detects SunVote receivers by looking for FTDI vendor ID `0403`.
+
+## Driver Setup
+
+The SDK does **not** bundle FTDI drivers — FTDI's CDM Driver License restricts redistribution to hardware sellers/distributors of devices that contain a Genuine FTDI Component. End-users have the right to download and install the driver themselves directly from FTDI under their own license.
+
+For most users, **no manual setup is needed**:
+
+- **macOS 10.15+** and **Linux** ship with a working FTDI driver out of the box.
+- **Windows 10/11** auto-installs the FTDI driver via Windows Update the first time the receiver is plugged in.
+
+If automatic install does not happen, the SDK exposes helpers your application can use to guide the end-user through manual setup:
+
+```ts
+import {
+  checkDriver,
+  getDriverInstallInfo,
+  openDriverDownloadPage,
+} from 'sunvote-ars-client';
+
+const status = await checkDriver();
+if (!status.installed) {
+  const info = getDriverInstallInfo(status);
+  console.log(info.instructions);          // human-readable next steps
+  console.log(info.downloadUrl);           // official FTDI URL
+
+  // Optional: open the FTDI download page in the user's default browser.
+  await openDriverDownloadPage();
+}
+```
+
+### Bundling Drivers (Hardware Distributors Only)
+
+If you ship your application together with hardware that contains a Genuine FTDI Component, FTDI's license permits you to bundle the CDM driver files inside your app. Place `ftdibus.inf`, `ftdiport.inf`, and the supporting files under e.g. `drivers/win32/`, then call:
+
+```ts
+import { app } from 'electron';
+import { join } from 'path';
+import { installDriver } from 'sunvote-ars-client';
+
+await installDriver(join(app.getAppPath(), 'drivers', 'win32'));
+```
+
+`installDriver()` shells out to `pnputil /add-driver ... /install` and requires Administrator privileges. On non-Windows platforms it is a no-op.
+
+> **Do not bundle FTDI drivers if your application is software-only.** Distributing them on npm or as part of a generic app violates the FTDI CDM Driver License (§3.1.7).
 
 ## Contributing
 
@@ -259,4 +304,4 @@ Contributions are welcome! Please read the [contributing guidelines](.github/CON
 
 ## License
 
-MIT -- see [LICENSE](LICENSE) for details.
+Apache-2.0 -- see [LICENSE](LICENSE) and [NOTICE](NOTICE) for details.

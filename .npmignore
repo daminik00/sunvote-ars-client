@@ -1,7 +1,6 @@
 # Source
 src/
 __tests__/
-drivers/
 
 # Config
 tsconfig.json

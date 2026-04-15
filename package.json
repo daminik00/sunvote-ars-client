@@ -1,6 +1,6 @@
 {
   "name": "sunvote-ars-client",
-  "version": "1.0.3",
+  "version": "1.1.0",
   "description": "Unofficial open-source client for SunVote ARS (Audience Response System) hardware. Not affiliated with Changsha SunVote Information Technology Co., Ltd.",
   "keywords": [
     "sunvote",
@@ -40,6 +40,7 @@
   "files": [
     "dist",
     "LICENSE",
+    "NOTICE",
     "README.md",
     "CHANGELOG.md"
   ],
