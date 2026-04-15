@@ -5,11 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.1.1] - 2026-04-16
+## [1.1.2] - 2026-04-16
 
-This release is the first one validated end-to-end against live PVS-2010-433M +
-PVS-W00 keypad hardware. Every protocol fix below was confirmed by watching
-real button presses arrive with the correct codes.
+First release validated end-to-end against live PVS-2010-433M + PVS-W00
+keypad hardware. Every protocol fix below was confirmed by watching real
+button presses arrive with the correct codes. Supersedes 1.1.1, which
+reached npm with only a partial subset of these fixes — always prefer 1.1.2.
+
+## [1.1.1] - 2026-04-15 — partial, superseded by 1.1.2
+
+Shipped to npm prematurely from an intermediate commit that contained only
+the `0xCX` Scan-flag-byte rename. Missing from this release (and present in
+1.1.2): the 5-packet `startVoteSession` activation sequence (without which
+keypads stay asleep), the `pollKeypads` timing/batching rewrite, and the
+`writeBaseConfig` byte-layout fix (channel was silently overwritten by
+`keyTo`). **Use 1.1.2 or newer.**
 
 ### Fixed
 - **Voting sessions now actually reach the keypads.** The Scan-command flag byte for session-management packets was being sent as `0x01`/`0x03`/`0x04`/`0x05` instead of `0xC1`/`0xC3`/`0xC4`/`0xC5`. Without the host→base `0xC0` high-nibble, the base ACK'd our "start vote" TX but never broadcast the RF wake command, so keypads stayed asleep and polls always returned "empty slot" (`type=0xFF`).
