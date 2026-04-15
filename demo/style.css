@@ -80,8 +80,17 @@ main {
   margin-top: 8px;
 }
 
-.voting-row label { display: inline-flex; gap: 4px; align-items: center; }
-.voting-row input { width: 48px; }
+.voting-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin: 6px 0 10px;
+}
+.field { display: flex; flex-direction: column; gap: 4px; }
+.field-label { font-size: 12px; font-weight: 500; }
+.field-help { color: var(--muted); font-size: 11px; line-height: 1.35; }
+.field input { width: 70px; }
+.hint { margin: 0 0 8px; line-height: 1.4; }
 
 button {
   background: #21262d;

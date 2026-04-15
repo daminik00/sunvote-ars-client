@@ -30,8 +30,8 @@
         <div class="row">
           <button id="btn-connect">Connect</button>
           <button id="btn-disconnect" disabled>Disconnect</button>
-          <label class="inline">
-            <input type="checkbox" id="debug-toggle" /> Debug log to DevTools
+          <label class="inline" title="Logs every TX/RX packet to the terminal that launched `npm run demo`. Must be enabled before Connect.">
+            <input type="checkbox" id="debug-toggle" /> Debug log to terminal
           </label>
         </div>
         <dl id="config-panel" class="kv">
@@ -45,10 +45,28 @@
       <!-- Voting -->
       <section class="card">
         <h2>Voting</h2>
-        <div class="row voting-row">
-          <label class="inline">Options <input type="number" id="vote-options" min="1" max="6" value="4" /></label>
-          <label class="inline">Min <input type="number" id="vote-min" min="1" max="6" value="1" /></label>
-          <label class="inline">Max <input type="number" id="vote-max" min="1" max="6" value="1" /></label>
+        <p class="muted small hint">
+          Sends a "start voting session" command to the base station. The base then broadcasts
+          the session parameters over RF, which wakes up the keypads and lets their buttons register.
+        </p>
+        <div class="voting-grid">
+          <label class="field">
+            <span class="field-label">Answer options (A–F)</span>
+            <input type="number" id="vote-options" min="1" max="6" value="4" />
+            <span class="field-help">How many buttons on the keypad are valid answers (e.g. 4 → only A/B/C/D count).</span>
+          </label>
+          <label class="field">
+            <span class="field-label">Min selections</span>
+            <input type="number" id="vote-min" min="1" max="6" value="1" />
+            <span class="field-help">Minimum choices voter must make before submitting.</span>
+          </label>
+          <label class="field">
+            <span class="field-label">Max selections</span>
+            <input type="number" id="vote-max" min="1" max="6" value="1" />
+            <span class="field-help">Max choices voter may make. 1 = single-choice; &gt;1 = multi-choice.</span>
+          </label>
+        </div>
+        <div class="row">
           <button id="btn-start-voting" disabled>Start voting</button>
           <button id="btn-stop-voting" disabled>Stop voting</button>
         </div>
