@@ -298,6 +298,17 @@ await installDriver(join(app.getAppPath(), 'drivers', 'win32'));
 
 > **Do not bundle FTDI drivers if your application is software-only.** Distributing them on npm or as part of a generic app violates the FTDI CDM Driver License (§3.1.7).
 
+## Demo App
+
+A minimal Electron demo lives in [`demo/`](demo). It exercises every SDK surface — driver detection, auto-connect, config readout, voting start/stop, live keypad table, activity log — and is useful both as a smoke test and as a copy-paste reference for your own Electron integration. The demo is a workspace in this repo and is **not** published to npm.
+
+```bash
+npm install
+npm run demo
+```
+
+See [demo/README.md](demo/README.md) for details.
+
 ## Contributing
 
 Contributions are welcome! Please read the [contributing guidelines](.github/CONTRIBUTING.md) before opening a pull request.

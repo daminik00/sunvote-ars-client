@@ -13,7 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `FTDI_DRIVER_DOWNLOAD_PAGE` constant — official FTDI VCP/CDM driver landing page URL.
 - `DriverStatus.downloadUrl` field — explicit, machine-readable URL when manual driver install is required (`null` when not needed).
 - `DriverInstallInfo` type.
-- README: new "Driver Setup" section explaining the zero-bundle approach and how to guide end-users through driver setup.
+- `demo/` workspace — a minimal Electron demo app exercising every SDK feature (driver check, auto-connect, config readout, voting, live keypad table, activity log). Runs via `npm run demo` from the repo root; not published to npm.
+- README: new "Driver Setup" and "Demo App" sections.
 
 ### Changed
 - `checkDriver()` now reports that Windows 10/11 typically installs FTDI drivers automatically via Windows Update.

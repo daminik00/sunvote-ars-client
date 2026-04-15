@@ -44,11 +44,15 @@
     "README.md",
     "CHANGELOG.md"
   ],
+  "workspaces": [
+    "demo"
+  ],
   "scripts": {
     "build": "tsup",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "tsc --noEmit",
+    "demo": "npm run build && npm start --workspace=demo",
     "prepublishOnly": "npm run lint && npm run test && npm run build"
   },
   "dependencies": {

@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="Content-Security-Policy"
+      content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'" />
+    <title>SunVote ARS Client — Demo</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <header>
+      <h1>SunVote ARS Client — Demo</h1>
+      <span id="state-badge" class="badge state-idle">idle</span>
+    </header>
+
+    <main>
+      <!-- Driver status -->
+      <section class="card">
+        <h2>Driver</h2>
+        <div id="driver-info" class="muted">Checking…</div>
+        <div class="row">
+          <button id="btn-check-driver">Re-check</button>
+          <button id="btn-open-driver-download" disabled>Open FTDI download page</button>
+        </div>
+      </section>
+
+      <!-- Connection -->
+      <section class="card">
+        <h2>Connection</h2>
+        <div class="row">
+          <button id="btn-connect">Connect</button>
+          <button id="btn-disconnect" disabled>Disconnect</button>
+          <label class="inline">
+            <input type="checkbox" id="debug-toggle" /> Debug log to DevTools
+          </label>
+        </div>
+        <dl id="config-panel" class="kv">
+          <dt>Port</dt><dd id="cfg-port">—</dd>
+          <dt>Base ID</dt><dd id="cfg-baseId">—</dd>
+          <dt>Channel</dt><dd id="cfg-channel">—</dd>
+          <dt>Key range</dt><dd id="cfg-keys">—</dd>
+        </dl>
+      </section>
+
+      <!-- Voting -->
+      <section class="card">
+        <h2>Voting</h2>
+        <div class="row voting-row">
+          <label class="inline">Options <input type="number" id="vote-options" min="1" max="6" value="4" /></label>
+          <label class="inline">Min <input type="number" id="vote-min" min="1" max="6" value="1" /></label>
+          <label class="inline">Max <input type="number" id="vote-max" min="1" max="6" value="1" /></label>
+          <button id="btn-start-voting" disabled>Start voting</button>
+          <button id="btn-stop-voting" disabled>Stop voting</button>
+        </div>
+      </section>
+
+      <!-- Keypads -->
+      <section class="card">
+        <h2>Keypads <span id="keypad-count" class="muted small">(0)</span></h2>
+        <table id="keypads-table">
+          <thead>
+            <tr><th>ID</th><th>Last button</th><th>When</th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+        <div id="keypads-empty" class="muted">No keypads seen yet.</div>
+      </section>
+
+      <!-- Activity log -->
+      <section class="card">
+        <h2>Activity log</h2>
+        <ul id="log"></ul>
+      </section>
+    </main>
+
+    <script src="renderer.js"></script>
+  </body>
+</html>
