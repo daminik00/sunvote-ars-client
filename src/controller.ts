@@ -371,36 +371,34 @@ export class SunVoteController extends TypedEmitter<SunVoteEvents> {
       this.ackByte = result.ackByte;
 
       for (const entry of result.entries) {
-        const { keypadId, button } = entry;
+        const { keypadId, button, counter } = entry;
 
-        // Emit 'keypad:new' for first-seen keypads
         if (!this.knownKeypads.has(keypadId)) {
           this.knownKeypads.set(keypadId, null);
           this.log(`New keypad detected: ${keypadId}`);
           this.emit('keypad:new', keypadId);
         }
 
-        // Dedup: only emit on button change
-        const lastButton = this.lastButtonByKeypad.get(keypadId) ?? 0;
+        const buttonLabel = BUTTON_LABELS.get(button) ?? `0x${button.toString(16).padStart(2, '0')}`;
+        const now = Date.now();
+        const rawPress: KeypadPress = { keypadId, button, buttonLabel, timestamp: now, counter };
+
+        // Raw event: fires every poll cycle the base reports this keypad's slot,
+        // regardless of whether the button changed. Useful for custom repeat-press
+        // detection, analytics, or debugging.
+        this.emit('keypad:raw', rawPress);
 
         if (button === 0x00) {
-          // Button released, reset tracking
           this.lastButtonByKeypad.delete(keypadId);
           continue;
         }
 
+        // Deduplicated `keypad:press` event: only fires when the button value changes.
+        const lastButton = this.lastButtonByKeypad.get(keypadId) ?? 0;
         if (button !== lastButton) {
           this.lastButtonByKeypad.set(keypadId, button);
-
-          const buttonLabel = BUTTON_LABELS.get(button) ?? `0x${button.toString(16).padStart(2, '0')}`;
-          const press: KeypadPress = {
-            keypadId,
-            button,
-            buttonLabel,
-            timestamp: Date.now(),
-          };
-          this.knownKeypads.set(keypadId, press);
-          this.emit('keypad:press', press);
+          this.knownKeypads.set(keypadId, rawPress);
+          this.emit('keypad:press', rawPress);
         }
       }
     } catch (err) {

@@ -79,6 +79,15 @@ export interface KeypadPress {
   button: number;
   buttonLabel: string;
   timestamp: number;
+  /**
+   * Raw per-keypad counter byte from the poll response slot (`payload[13]`).
+   * Empirically observed to be a stable keypad identifier or a slow-moving
+   * sequence byte — investigation ongoing. Exposed for apps that want to
+   * implement their own dedup / repeat-press detection. May be `undefined`
+   * on older SDK code paths; prefer inspecting {@link KeypadPress.button}
+   * plus timestamps for normal use.
+   */
+  counter?: number;
 }
 
 export interface VoteOptions {
@@ -110,7 +119,10 @@ export interface ConnectionOptions {
 }
 
 export interface SunVoteEvents {
+  /** Deduplicated — only fires when the button value changes for a given keypad. */
   'keypad:press': (press: KeypadPress) => void;
+  /** Raw — fires on every poll cycle where the base reports a non-empty slot. Use when your app needs per-cycle visibility (e.g. to implement custom dedup against the raw `counter` byte). */
+  'keypad:raw': (press: KeypadPress) => void;
   'keypad:new': (keypadId: number) => void;
   'state:change': (newState: SessionState, oldState: SessionState) => void;
   'base:config': (config: BaseConfig) => void;
@@ -118,6 +130,6 @@ export interface SunVoteEvents {
 }
 
 export interface PollResult {
-  entries: Array<{ keypadId: number; button: number }>;
+  entries: Array<{ keypadId: number; button: number; counter: number }>;
   ackByte: number;
 }

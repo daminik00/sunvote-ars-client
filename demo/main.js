@@ -41,6 +41,7 @@ function ensureController() {
   controller = new SunVoteController();
 
   controller.on('keypad:press', (press) => send('keypad:press', press));
+  controller.on('keypad:raw', (press) => send('keypad:raw', press));
   controller.on('keypad:new', (keypadId) => send('keypad:new', keypadId));
   controller.on('state:change', (newState, oldState) =>
     send('state:change', { newState, oldState }),

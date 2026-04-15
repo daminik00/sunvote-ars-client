@@ -393,7 +393,7 @@ export class SunVoteReceiver {
    * @returns PollResult with entries and new ackByte
    */
   async pollKeypads(baseId: number, ackByte: number = 0): Promise<PollResult> {
-    const entries: Array<{ keypadId: number; button: number }> = [];
+    const entries: Array<{ keypadId: number; button: number; counter: number }> = [];
     if (!this.port?.isOpen) throw new Error('Port is not open');
     const port = this.port;
 
@@ -441,17 +441,22 @@ export class SunVoteReceiver {
       if (!resp.crcValid) continue;
       // Long response (LEN=0x20): payload[0]=cmd, payload[1..3]=headers, payload[4]=status.
       // status=0xFF → no keypad data in this row; otherwise keypadId at [7], button at [8].
-      if (resp.payload.length < 9) continue;
+      if (resp.payload.length < 14) continue;
       const status = resp.payload[4];
       if (status === 0xff) continue;
 
       const keypadId = resp.payload[7];
       const button = resp.payload[8];
+      // Per-keypad "counter"/sequence byte — captured at slot position 9
+      // (full packet offset pkt[17]). Purpose not fully known: observed to be
+      // stable for the same keypad across presses, but may carry a signal
+      // we'll use for repeat-press detection once verified on hardware.
+      const counter = resp.payload[13];
       newAckByte = status;
 
       if (keypadId > 0) {
-        entries.push({ keypadId, button });
-        this.log(`Poll: keypad=${keypadId} button=0x${button.toString(16)}`);
+        entries.push({ keypadId, button, counter });
+        this.log(`Poll: keypad=${keypadId} button=0x${button.toString(16)} counter=0x${counter.toString(16)}`);
       }
     }
 

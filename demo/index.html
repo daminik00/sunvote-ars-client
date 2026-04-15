@@ -144,6 +144,23 @@
         <h2>Activity log</h2>
         <ul id="log"></ul>
       </section>
+
+      <!-- Raw poll log -->
+      <section class="card">
+        <h2>Raw poll log <span class="muted small">(every `keypad:raw` event)</span></h2>
+        <p class="muted small hint">
+          Fires once per poll cycle that reports a keypad slot, regardless of
+          whether the button value changed. The `counter` column is
+          <code>payload[13]</code> — use it to observe whether the base
+          differentiates repeated presses of the same button.
+        </p>
+        <table id="raw-table">
+          <thead>
+            <tr><th>Time</th><th>Keypad</th><th>Button</th><th>Counter (hex)</th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </section>
     </main>
 
     <script src="renderer.js"></script>

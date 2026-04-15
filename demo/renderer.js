@@ -35,6 +35,7 @@ const els = {
   keypadsEmpty: $('keypads-empty'),
   keypadCount: $('keypad-count'),
   log: $('log'),
+  rawTableBody: document.querySelector('#raw-table tbody'),
 };
 
 let currentState = 'idle';
@@ -326,6 +327,29 @@ window.sunvote.onKeypadPress((press) => {
     row.classList.add('flash');
   }
   log('success', `Keypad ${press.keypadId} pressed ${press.buttonLabel}`);
+});
+
+window.sunvote.onKeypadRaw((press) => {
+  const tr = document.createElement('tr');
+  const time = document.createElement('td');
+  time.textContent = new Date(press.timestamp).toLocaleTimeString();
+  const kp = document.createElement('td');
+  kp.textContent = String(press.keypadId);
+  const btn = document.createElement('td');
+  btn.textContent = press.buttonLabel;
+  const counter = document.createElement('td');
+  counter.textContent = press.counter !== undefined
+    ? `0x${press.counter.toString(16).padStart(2, '0')}`
+    : '—';
+  tr.appendChild(time);
+  tr.appendChild(kp);
+  tr.appendChild(btn);
+  tr.appendChild(counter);
+  els.rawTableBody.insertBefore(tr, els.rawTableBody.firstChild);
+  // Cap at 100 rows.
+  while (els.rawTableBody.children.length > 100) {
+    els.rawTableBody.removeChild(els.rawTableBody.lastChild);
+  }
 });
 
 window.sunvote.onError((msg) => log('error', `SDK error: ${msg}`));

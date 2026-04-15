@@ -205,7 +205,7 @@ describe('SunVoteController', () => {
   describe('keypad events', () => {
     it('keypad:new fires first time a keypad is seen', async () => {
       mockReceiver.pollKeypads.mockResolvedValueOnce({
-        entries: [{ keypadId: 10, button: 0x01 }],
+        entries: [{ keypadId: 10, button: 0x01, counter: 0 }],
         ackByte: 1,
       });
 
@@ -223,7 +223,7 @@ describe('SunVoteController', () => {
 
     it('keypad:press fires on new button press', async () => {
       mockReceiver.pollKeypads.mockResolvedValueOnce({
-        entries: [{ keypadId: 10, button: 0x01 }],
+        entries: [{ keypadId: 10, button: 0x01, counter: 0x0a }],
         ackByte: 1,
       });
 
@@ -240,20 +240,51 @@ describe('SunVoteController', () => {
           keypadId: 10,
           button: 0x01,
           buttonLabel: '1/A',
+          counter: 0x0a,
         }),
       );
+    });
+
+    it('keypad:raw fires on every poll entry, even when the button value is unchanged', async () => {
+      mockReceiver.pollKeypads
+        .mockResolvedValueOnce({
+          entries: [{ keypadId: 10, button: 0x01, counter: 0x0a }],
+          ackByte: 1,
+        })
+        .mockResolvedValueOnce({
+          // Same button, new counter value
+          entries: [{ keypadId: 10, button: 0x01, counter: 0x0b }],
+          ackByte: 1,
+        })
+        .mockResolvedValue({ entries: [], ackByte: 0 });
+
+      const rawHandler = vi.fn();
+      const pressHandler = vi.fn();
+      ctrl.on('keypad:raw', rawHandler);
+      ctrl.on('keypad:press', pressHandler);
+
+      await ctrl.connect({ path: '/dev/ttyUSB0' });
+      await ctrl.startVoting();
+      await vi.advanceTimersByTimeAsync(60);
+      await vi.advanceTimersByTimeAsync(60);
+
+      // :raw fires both times; :press only the first (button unchanged on second poll).
+      expect(rawHandler).toHaveBeenCalledTimes(2);
+      expect(rawHandler.mock.calls[0][0]).toMatchObject({ button: 0x01, counter: 0x0a });
+      expect(rawHandler.mock.calls[1][0]).toMatchObject({ button: 0x01, counter: 0x0b });
+      expect(pressHandler).toHaveBeenCalledTimes(1);
     });
 
     it('same button on same keypad does not re-emit (dedup)', async () => {
       // First poll: button 0x01
       mockReceiver.pollKeypads
         .mockResolvedValueOnce({
-          entries: [{ keypadId: 10, button: 0x01 }],
+          entries: [{ keypadId: 10, button: 0x01, counter: 0 }],
           ackByte: 1,
         })
         // Second poll: same button 0x01
         .mockResolvedValueOnce({
-          entries: [{ keypadId: 10, button: 0x01 }],
+          entries: [{ keypadId: 10, button: 0x01, counter: 0 }],
           ackByte: 1,
         });
 
@@ -275,11 +306,11 @@ describe('SunVoteController', () => {
     it('different button on same keypad does emit', async () => {
       mockReceiver.pollKeypads
         .mockResolvedValueOnce({
-          entries: [{ keypadId: 10, button: 0x01 }],
+          entries: [{ keypadId: 10, button: 0x01, counter: 0 }],
           ackByte: 1,
         })
         .mockResolvedValueOnce({
-          entries: [{ keypadId: 10, button: 0x02 }],
+          entries: [{ keypadId: 10, button: 0x02, counter: 0 }],
           ackByte: 1,
         });
 
@@ -300,17 +331,17 @@ describe('SunVoteController', () => {
     it('button 0x00 resets dedup tracking, allowing same button to re-emit', async () => {
       mockReceiver.pollKeypads
         .mockResolvedValueOnce({
-          entries: [{ keypadId: 10, button: 0x01 }],
+          entries: [{ keypadId: 10, button: 0x01, counter: 0 }],
           ackByte: 1,
         })
         // Button released (0x00)
         .mockResolvedValueOnce({
-          entries: [{ keypadId: 10, button: 0x00 }],
+          entries: [{ keypadId: 10, button: 0x00, counter: 0 }],
           ackByte: 0,
         })
         // Same button pressed again
         .mockResolvedValueOnce({
-          entries: [{ keypadId: 10, button: 0x01 }],
+          entries: [{ keypadId: 10, button: 0x01, counter: 0 }],
           ackByte: 1,
         });
 
@@ -331,11 +362,11 @@ describe('SunVoteController', () => {
     it('keypad:new does not fire again for known keypads', async () => {
       mockReceiver.pollKeypads
         .mockResolvedValueOnce({
-          entries: [{ keypadId: 10, button: 0x01 }],
+          entries: [{ keypadId: 10, button: 0x01, counter: 0 }],
           ackByte: 1,
         })
         .mockResolvedValueOnce({
-          entries: [{ keypadId: 10, button: 0x02 }],
+          entries: [{ keypadId: 10, button: 0x02, counter: 0 }],
           ackByte: 1,
         });
 
@@ -379,7 +410,7 @@ describe('SunVoteController', () => {
 
     it('getKeypads returns a snapshot', async () => {
       mockReceiver.pollKeypads.mockResolvedValueOnce({
-        entries: [{ keypadId: 7, button: 0x02 }],
+        entries: [{ keypadId: 7, button: 0x02, counter: 0 }],
         ackByte: 1,
       });
 
