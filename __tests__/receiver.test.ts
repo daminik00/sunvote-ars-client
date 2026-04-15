@@ -190,15 +190,44 @@ describe('SunVoteReceiver', () => {
       // Two writes: BaseIniWr + BaseZoneWr
       expect(mockPort.write).toHaveBeenCalledTimes(2);
 
-      // First packet should be System cmd with BaseIniWrite subCmd
+      // BaseIniWr: System cmd, subCmd=0x0B (BaseIniWrite).
+      // Data layout [baseId, keyFrom, channel, 0, 0] — including `keyTo` here
+      // regression bug silently overwrote the stored channel.
       const firstPacket = mockPort.write.mock.calls[0][0] as Buffer;
       expect(firstPacket[4]).toBe(CmdCode.System);
       expect(firstPacket[8]).toBe(SystemSubCmd.BaseIniWrite);
+      expect(firstPacket[9]).toBe(0x01);  // baseId
+      expect(firstPacket[10]).toBe(0x01); // keyFrom low byte
+      expect(firstPacket[11]).toBe(0x03); // channel — MUST be at pkt[11]
+      expect(firstPacket[12]).toBe(0x00); // reserved
+      expect(firstPacket[13]).toBe(0x00); // padding
 
-      // Second packet should be Scan cmd with subCmd=0x05
+      // BaseZoneWr: Scan cmd, subCmd=0x05, carries the 16-bit keyFrom/keyTo range.
       const secondPacket = mockPort.write.mock.calls[1][0] as Buffer;
       expect(secondPacket[4]).toBe(CmdCode.Scan);
       expect(secondPacket[8]).toBe(0x05);
+      expect(secondPacket[9]).toBe(0x00);  // keyFrom high byte
+      expect(secondPacket[10]).toBe(0x01); // keyFrom low byte
+      expect(secondPacket[11]).toBe(0x00); // keyTo high byte
+      expect(secondPacket[12]).toBe(0x32); // keyTo low byte (50)
+    });
+
+    it('writes keyTo > 255 into the 16-bit BaseZoneWr fields, not BaseIniWr', async () => {
+      await receiver.open();
+      mockPort.write.mockImplementation((_data: Buffer, cb: (err: Error | null) => void) => cb(null));
+
+      await receiver.writeBaseConfig({
+        baseId: 1, keyFrom: 1, keyTo: 800, keyMax: 800, channel: 200,
+      });
+
+      const firstPacket = mockPort.write.mock.calls[0][0] as Buffer;
+      // Channel must be stored raw (200 = 0xC8), not clamped keyTo (255 = 0xFF).
+      expect(firstPacket[11]).toBe(0xc8);
+
+      const secondPacket = mockPort.write.mock.calls[1][0] as Buffer;
+      // keyTo=800 = 0x0320 → high=0x03, low=0x20
+      expect(secondPacket[11]).toBe(0x03);
+      expect(secondPacket[12]).toBe(0x20);
     });
   });
 

@@ -80,16 +80,26 @@ Disconnect from the receiver. Stops voting if active.
 
 ##### `startVoting(options?): Promise<void>`
 
-Start a voting session and begin polling keypads.
+Start a voting session and begin polling keypads. The controller internally runs a
+five-packet activation sequence (C1 start → C2 clear → C4 poll → C5×2 wake
+broadcast with a 50 ms RF gap) so the keypads actually come out of sleep.
 
 ```ts
-await ctrl.startVoting({ options: 4, maxSelections: 1 });
+// Using the defaults — known to produce raw bitmap button codes on PVS-W00 keypads.
+await ctrl.startVoting();
+
+// Explicit:
+await ctrl.startVoting({ options: 2, minSelections: 1, maxSelections: 6 });
 ```
 
-- `options.mode` -- Voting mode (default: `0x05`).
-- `options.options` -- Number of answer options (default: `2`).
+- `options.mode` -- Voting mode (default: `0x05`, matches the captured reference session).
+- `options.options` -- Number of answer options advertised to the keypads (default: `2`).
 - `options.minSelections` -- Minimum selections required (default: `1`).
 - `options.maxSelections` -- Maximum selections allowed (default: `6`).
+
+> **Hardware note:** On the PVS-W00 keypad family, `maxSelections = 1` has been
+> observed to make the base return an obfuscated single byte instead of the raw
+> bitmap. If you see unexpected button codes, start with the defaults above.
 
 ##### `stopVoting(): Promise<void>`
 
