@@ -220,7 +220,8 @@ describe('SunVoteReceiver', () => {
       expect(mockPort.write).toHaveBeenCalledTimes(1);
       const pkt = mockPort.write.mock.calls[0][0] as Buffer;
       expect(pkt[4]).toBe(CmdCode.Scan); // cmd
-      expect(pkt[5]).toBe(0x01); // b5 = 0x01
+      expect(pkt[5]).toBe(0x01); // baseId
+      expect(pkt[7]).toBe(0xc1); // flags = 0xC1 (host→base Start)
       expect(pkt[8]).toBe(0x02); // subCmd = 0x02 (Ready)
       expect(pkt[9]).toBe(0x05); // mode
       expect(pkt[10]).toBe(0x04); // options
@@ -259,7 +260,7 @@ describe('SunVoteReceiver', () => {
       const pkt = mockPort.write.mock.calls[0][0] as Buffer;
       expect(pkt[4]).toBe(CmdCode.Scan);
       expect(pkt[5]).toBe(0x01); // baseId
-      expect(pkt[7]).toBe(0x03); // flags = 0x03
+      expect(pkt[7]).toBe(0xc3); // flags = 0xC3 (host→base Stop)
     });
   });
 
@@ -345,6 +346,24 @@ describe('SunVoteReceiver', () => {
       const ackPkt = mockPort.write.mock.calls[0][0] as Buffer;
       // Long packet: data starts at byte 8 (after header+syscode+len+cmd+b5+b6+flags)
       expect(ackPkt[8]).toBe(0x42); // ackByte
+    });
+
+    it('sends correct host→base flag bytes for each sub-packet (C5, C5, C4)', async () => {
+      await receiver.open();
+      mockPort.write.mockImplementation((_data: Buffer, cb: (err: Error | null) => void) => cb(null));
+
+      await receiver.pollKeypads(0x01, 0);
+
+      expect(mockPort.write).toHaveBeenCalledTimes(3);
+      const ackPkt = mockPort.write.mock.calls[0][0] as Buffer;
+      const bcastPkt = mockPort.write.mock.calls[1][0] as Buffer;
+      const pollPkt = mockPort.write.mock.calls[2][0] as Buffer;
+
+      // All three go to flags byte at payload[3] = packet[7]
+      expect(ackPkt[7]).toBe(0xc5);
+      expect(bcastPkt[7]).toBe(0xc5);
+      expect(bcastPkt[5]).toBe(0xc7); // broadcast target
+      expect(pollPkt[7]).toBe(0xc4);
     });
   });
 

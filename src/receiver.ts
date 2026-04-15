@@ -294,6 +294,12 @@ export class SunVoteReceiver {
 
   /**
    * Start a voting session.
+   *
+   * Scan-command "direction" byte is 0xC1 (host → base, "start vote"). The high
+   * nibble 0xC0 is consistent across Scan session commands (Start=C1, Stop=C3,
+   * Poll=C4, Ack/Broadcast=C5) — observed in captured traffic from the original
+   * SunVoteARS Windows client.
+   *
    * @param baseId - base station ID
    * @param options - voting parameters
    */
@@ -304,11 +310,8 @@ export class SunVoteReceiver {
     const maxSel = options.maxSelections ?? 0x06;
     const minSel = options.minSelections ?? 0x01;
 
-    // dpFlags: high nibble of baseId + 0x01
-    const dpFlags = ((baseId & 0xf0) | 0x01);
-
     const startPacket = buildShortPacket(
-      CmdCode.Scan, 0x01, 0x00, dpFlags, 0x02,
+      CmdCode.Scan, baseId, 0x00, 0xc1, 0x02,
       [mode, numOptions, maxSel, minSel, 0x00],
     );
 
@@ -321,7 +324,7 @@ export class SunVoteReceiver {
   async stopVoteSession(baseId: number): Promise<ParsedPacket | null> {
     this.log(`Stopping vote session for base ${baseId}`);
     const stopPacket = buildShortPacket(
-      CmdCode.Scan, baseId, 0x00, 0x03, 0x00,
+      CmdCode.Scan, baseId, 0x00, 0xc3, 0x00,
       Buffer.alloc(5),
     );
     return this.sendAndReceive(stopPacket);
@@ -338,18 +341,18 @@ export class SunVoteReceiver {
   async pollKeypads(baseId: number, ackByte: number = 0): Promise<PollResult> {
     const entries: Array<{ keypadId: number; button: number }> = [];
 
-    // 1) C5 ACK: long packet with ack byte
+    // 1) C5 ACK: long packet with ack byte (flags=0xC5 host→base "scan ack")
     const ackData = Buffer.alloc(19);
     ackData[0] = ackByte;
-    const ackPacket = buildLongPacket(CmdCode.Scan, baseId, 0x00, 0x05, ackData);
+    const ackPacket = buildLongPacket(CmdCode.Scan, baseId, 0x00, 0xc5, ackData);
     await this.sendAndReceive(ackPacket, 100);
 
-    // 2) C5 Broadcast (0xC7): long packet, all zeros data
-    const broadcastPacket = buildLongPacket(CmdCode.Scan, 0xc7, 0x00, 0x05, Buffer.alloc(19));
+    // 2) C5 Broadcast to all keypads (arg1=0xC7): long packet, all zeros data
+    const broadcastPacket = buildLongPacket(CmdCode.Scan, 0xc7, 0x00, 0xc5, Buffer.alloc(19));
     await this.sendAndReceive(broadcastPacket, 100);
 
-    // 3) C4 Poll: short packet
-    const pollPacket = buildShortPacket(CmdCode.Scan, baseId, 0x00, 0x04, 0x00, Buffer.alloc(5));
+    // 3) C4 Poll: short packet (flags=0xC4 host→base "poll for results")
+    const pollPacket = buildShortPacket(CmdCode.Scan, baseId, 0x00, 0xc4, 0x00, Buffer.alloc(5));
     const pollResp = await this.sendAndReceiveAll(pollPacket, READ_TIMEOUT);
 
     let newAckByte = 0;

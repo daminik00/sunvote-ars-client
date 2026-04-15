@@ -25,6 +25,7 @@ export {
   CmdCode,
   ScanSubCmd,
   SCAN_BASE_ZONE_WR,
+  SCAN_READY_SUBCMD,
   SystemSubCmd,
   SessionState,
   BUTTON_LABELS,

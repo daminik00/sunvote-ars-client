@@ -9,18 +9,26 @@ export enum CmdCode {
   ScanResp = 0x95,
 }
 
+/**
+ * Flag byte values for host→base Scan-command packets (at payload byte 3).
+ * The high nibble 0xC0 marks the packet as a host→base session-management
+ * command; the low nibble selects the specific operation.
+ */
 export enum ScanSubCmd {
-  Start = 0x01,
-  Ready = 0x02,
-  Stop = 0x03,
-  Poll = 0x04,
-  Ack = 0x05,
+  Start = 0xc1,
+  Stop = 0xc3,
+  Poll = 0xc4,
+  Ack = 0xc5,
+  /** Base-config read uses low-nibble flags=0x00; value goes in the subCmd byte. */
   BaseScanRd = 0x06,
 }
 
+/** Post-Start vote "ready" sub-command (goes in the subCmd byte, not flags). */
+export const SCAN_READY_SUBCMD = 0x02;
+
 /**
- * Alias for the BaseZoneWr sub-command, which shares the same value (0x05) as ScanSubCmd.Ack.
- * Kept as a standalone constant to avoid TypeScript enum value conflicts.
+ * Base-zone-write sub-command (0x05) — shares the value with the old Ack byte.
+ * Goes in the subCmd byte of a Scan packet with flags=0x00.
  */
 export const SCAN_BASE_ZONE_WR = 0x05;
 

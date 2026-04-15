@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.1] - 2026-04-15
+
+### Fixed
+- **Voting sessions now actually reach the keypads.** The Scan-command flag byte for session-management packets was being sent as `0x01`/`0x03`/`0x04`/`0x05` instead of `0xC1`/`0xC3`/`0xC4`/`0xC5`. The high-nibble `0xC0` marks the packet as a host→base session command; without it the base acknowledged the "start vote" TX but never broadcast the wake command over RF, so keypads stayed asleep and polls always returned "empty slot" (`type=0xFF`).
+- `startVoteSession` packet `arg1` is now `baseId` (matching `stopVoteSession` / `pollKeypads`) instead of hardcoded `0x01`.
+
+### Changed
+- `ScanSubCmd` enum values updated to the correct host→base flag bytes (`0xC1`/`0xC3`/`0xC4`/`0xC5`). `BaseScanRd = 0x06` is unchanged (lives in the subCmd byte, not flags).
+- New `SCAN_READY_SUBCMD = 0x02` constant for the vote-session "ready" sub-command byte.
+
 ## [1.1.0] - 2026-04-15
 
 ### Added
