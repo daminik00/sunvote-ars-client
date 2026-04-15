@@ -270,19 +270,24 @@ export class SunVoteReceiver {
 
   /**
    * Write base station configuration.
-   * Sends BaseIniWr + BaseZoneWr to program the receiver.
+   *
+   * Sends two packets matching the captured SunVoteARS protocol:
+   *   1. BaseIniWr (System/0x0B) with data `[baseId, keyFrom, channel, 0, 0]`.
+   *      The keypad *range* lives only in the BaseZoneWr packet below —
+   *      including `keyTo` here would push `channel` into the next byte and
+   *      corrupt the base's stored channel (observed bug: writing `keyTo=40`
+   *      silently overwrote `channel` with 40).
+   *   2. BaseZoneWr (Scan/0x05) with the 16-bit keyFrom / keyTo range.
    */
   async writeBaseConfig(config: BaseConfig): Promise<void> {
     this.log(`Writing base config: ${JSON.stringify(config)}`);
 
-    // 1) BaseIniWr: System cmd, flags=0x0F, subCmd=0x0B
     const iniPacket = buildShortPacket(
       CmdCode.System, 0x00, 0x00, 0x0f, SystemSubCmd.BaseIniWrite,
-      [config.baseId, config.keyFrom, Math.min(config.keyTo, 255), config.channel, 0],
+      [config.baseId, config.keyFrom & 0xff, config.channel, 0, 0],
     );
     await this.sendAndReceive(iniPacket);
 
-    // 2) BaseZoneWr: Scan cmd, flags=0, subCmd=0x05
     const zonePacket = buildShortPacket(
       CmdCode.Scan, 0x00, 0x00, 0x00, 0x05,
       [
