@@ -203,7 +203,7 @@ describe('SunVoteReceiver', () => {
   });
 
   describe('startVoteSession', () => {
-    it('should send a start vote packet with correct format', async () => {
+    it('sends the 5-packet activation sequence (C1 start, C2 clear, C4 poll, C5×2 wake)', async () => {
       await receiver.open();
 
       mockPort.write.mockImplementation((_data: Buffer, cb: (err: Error | null) => void) => {
@@ -217,32 +217,46 @@ describe('SunVoteReceiver', () => {
         minSelections: 0x01,
       });
 
-      expect(mockPort.write).toHaveBeenCalledTimes(1);
-      const pkt = mockPort.write.mock.calls[0][0] as Buffer;
-      expect(pkt[4]).toBe(CmdCode.Scan); // cmd
-      expect(pkt[5]).toBe(0x01); // baseId
-      expect(pkt[7]).toBe(0xc1); // flags = 0xC1 (host→base Start)
-      expect(pkt[8]).toBe(0x02); // subCmd = 0x02 (Ready)
-      expect(pkt[9]).toBe(0x05); // mode
-      expect(pkt[10]).toBe(0x04); // options
-      expect(pkt[11]).toBe(0x02); // maxSelections
-      expect(pkt[12]).toBe(0x01); // minSelections
+      expect(mockPort.write).toHaveBeenCalledTimes(5);
+
+      const c1 = mockPort.write.mock.calls[0][0] as Buffer;
+      expect(c1[4]).toBe(CmdCode.Scan);
+      expect(c1[5]).toBe(0x01); // baseId
+      expect(c1[7]).toBe(0xc1); // flags = Start
+      expect(c1[8]).toBe(0x02); // subCmd
+      expect(c1[9]).toBe(0x05); // mode
+      expect(c1[10]).toBe(0x04); // options
+      expect(c1[11]).toBe(0x02); // maxSelections
+      expect(c1[12]).toBe(0x01); // minSelections
+
+      const c2 = mockPort.write.mock.calls[1][0] as Buffer;
+      expect(c2[7]).toBe(0xc2); // flags = Clear
+
+      const c4 = mockPort.write.mock.calls[2][0] as Buffer;
+      expect(c4[7]).toBe(0xc4); // flags = Poll (initial)
+
+      const c5a = mockPort.write.mock.calls[3][0] as Buffer;
+      expect(c5a[3]).toBe(0x19); // long packet
+      expect(c5a[5]).toBe(0x01); // targeted to baseId
+      expect(c5a[7]).toBe(0xc5); // flags = Ack/scan
+
+      const c5b = mockPort.write.mock.calls[4][0] as Buffer;
+      expect(c5b[3]).toBe(0x19); // long packet
+      expect(c5b[5]).toBe(0xc7); // broadcast to all keypads
+      expect(c5b[7]).toBe(0xc5);
     });
 
-    it('should use default vote options', async () => {
+    it('uses default vote options', async () => {
       await receiver.open();
-
-      mockPort.write.mockImplementation((_data: Buffer, cb: (err: Error | null) => void) => {
-        cb(null);
-      });
+      mockPort.write.mockImplementation((_data: Buffer, cb: (err: Error | null) => void) => cb(null));
 
       await receiver.startVoteSession(0x01);
 
-      const pkt = mockPort.write.mock.calls[0][0] as Buffer;
-      expect(pkt[9]).toBe(0x05); // default mode
-      expect(pkt[10]).toBe(0x02); // default options
-      expect(pkt[11]).toBe(0x06); // default maxSelections
-      expect(pkt[12]).toBe(0x01); // default minSelections
+      const c1 = mockPort.write.mock.calls[0][0] as Buffer;
+      expect(c1[9]).toBe(0x05); // default mode
+      expect(c1[10]).toBe(0x02); // default options
+      expect(c1[11]).toBe(0x06); // default maxSelections
+      expect(c1[12]).toBe(0x01); // default minSelections
     });
   });
 

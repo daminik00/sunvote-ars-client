@@ -7,6 +7,8 @@ const els = {
   driverInfo: $('driver-info'),
   btnCheckDriver: $('btn-check-driver'),
   btnOpenDriverDownload: $('btn-open-driver-download'),
+  portSelect: $('port-select'),
+  btnRefreshPorts: $('btn-refresh-ports'),
   btnConnect: $('btn-connect'),
   btnDisconnect: $('btn-disconnect'),
   debugToggle: $('debug-toggle'),
@@ -14,6 +16,15 @@ const els = {
   cfgBaseId: $('cfg-baseId'),
   cfgChannel: $('cfg-channel'),
   cfgKeys: $('cfg-keys'),
+  writeBaseId: $('write-base-id'),
+  writeKeyFrom: $('write-key-from'),
+  writeKeyTo: $('write-key-to'),
+  writeChannel: $('write-channel'),
+  btnWriteConfig: $('btn-write-config'),
+  btnReadKeypadId: $('btn-read-keypad-id'),
+  readKeypadIdResult: $('read-keypad-id-result'),
+  writeKeypadId: $('write-keypad-id'),
+  btnWriteKeypadId: $('btn-write-keypad-id'),
   btnStartVoting: $('btn-start-voting'),
   btnStopVoting: $('btn-stop-voting'),
   voteOptions: $('vote-options'),
@@ -68,6 +79,10 @@ function applyState(state) {
   els.btnDisconnect.disabled = !connected;
   els.btnStartVoting.disabled = !connected || voting;
   els.btnStopVoting.disabled = !voting;
+  // Config write and keypad programming require connected (not voting) state.
+  els.btnWriteConfig.disabled = !connected || voting;
+  els.btnReadKeypadId.disabled = !connected;
+  els.btnWriteKeypadId.disabled = !connected;
 }
 
 function applyConfig(cfg) {
@@ -80,6 +95,12 @@ function applyConfig(cfg) {
   els.cfgBaseId.textContent = String(cfg.baseId);
   els.cfgChannel.textContent = String(cfg.channel);
   els.cfgKeys.textContent = `${cfg.keyFrom}..${cfg.keyTo} (max ${cfg.keyMax})`;
+  // Pre-fill the write-config inputs with the current values so the user can
+  // edit a single field without re-typing everything.
+  els.writeBaseId.value = String(cfg.baseId);
+  els.writeKeyFrom.value = String(cfg.keyFrom);
+  els.writeKeyTo.value = String(cfg.keyTo);
+  els.writeChannel.value = String(cfg.channel);
 }
 
 function renderKeypads() {
@@ -157,16 +178,83 @@ els.btnOpenDriverDownload.addEventListener('click', async () => {
   }
 });
 
+async function refreshPorts() {
+  try {
+    const ports = await window.sunvote.listPorts();
+    clearChildren(els.portSelect);
+    const auto = document.createElement('option');
+    auto.value = '';
+    auto.textContent = 'auto-detect';
+    els.portSelect.appendChild(auto);
+    for (const p of ports) {
+      const opt = document.createElement('option');
+      opt.value = p.path;
+      const vendor = p.manufacturer || (p.vendorId ? `VID:${p.vendorId}` : 'unknown');
+      opt.textContent = `${p.path}  —  ${vendor}`;
+      els.portSelect.appendChild(opt);
+    }
+    log('info', `Found ${ports.length} serial port(s).`);
+  } catch (err) {
+    log('error', `Port list failed: ${err.message}`);
+  }
+}
+
+els.btnRefreshPorts.addEventListener('click', refreshPorts);
+
 els.btnConnect.addEventListener('click', async () => {
   els.btnConnect.disabled = true;
   try {
-    const cfg = await window.sunvote.connect({ debug: els.debugToggle.checked });
+    const path = els.portSelect.value || null;
+    const cfg = await window.sunvote.connect({ debug: els.debugToggle.checked, path });
     applyConfig(cfg);
-    els.cfgPort.textContent = 'auto';
+    els.cfgPort.textContent = path || 'auto';
     log('success', `Connected. baseId=${cfg.baseId} channel=${cfg.channel}`);
   } catch (err) {
     log('error', `Connect failed: ${err.message}`);
     els.btnConnect.disabled = false;
+  }
+});
+
+els.btnWriteConfig.addEventListener('click', async () => {
+  try {
+    const config = {
+      baseId: Number(els.writeBaseId.value),
+      keyFrom: Number(els.writeKeyFrom.value),
+      keyTo: Number(els.writeKeyTo.value),
+      keyMax: Number(els.writeKeyTo.value) - Number(els.writeKeyFrom.value) + 1,
+      channel: Number(els.writeChannel.value),
+    };
+    await window.sunvote.writeConfig(config);
+    log('success', `Wrote config: baseId=${config.baseId} channel=${config.channel} keys=${config.keyFrom}..${config.keyTo}`);
+  } catch (err) {
+    log('error', `Write config failed: ${err.message}`);
+  }
+});
+
+els.btnReadKeypadId.addEventListener('click', async () => {
+  els.readKeypadIdResult.textContent = 'Reading…';
+  try {
+    const id = await window.sunvote.readKeypadId();
+    if (id === null) {
+      els.readKeypadIdResult.textContent = 'No keypad responded (is it in programming mode?)';
+      log('warn', 'Read keypad ID: no response.');
+    } else {
+      els.readKeypadIdResult.textContent = `ID = ${id}`;
+      log('success', `Read keypad ID: ${id}`);
+    }
+  } catch (err) {
+    els.readKeypadIdResult.textContent = `Error: ${err.message}`;
+    log('error', `Read keypad ID failed: ${err.message}`);
+  }
+});
+
+els.btnWriteKeypadId.addEventListener('click', async () => {
+  const id = Number(els.writeKeypadId.value);
+  try {
+    await window.sunvote.writeKeypadId(id);
+    log('success', `Wrote keypad ID ${id}. (Keypad must be in programming mode.)`);
+  } catch (err) {
+    log('error', `Write keypad ID failed: ${err.message}`);
   }
 });
 
@@ -248,6 +336,7 @@ window.sunvote.onError((msg) => log('error', `SDK error: ${msg}`));
 
 (async () => {
   await checkDriver();
+  await refreshPorts();
   const snap = await window.sunvote.snapshot();
   applyState(snap.state);
   applyConfig(snap.config);

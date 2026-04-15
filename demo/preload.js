@@ -12,6 +12,13 @@ contextBridge.exposeInMainWorld('sunvote', {
   connect: (opts) => ipcRenderer.invoke('sunvote:connect', opts),
   disconnect: () => ipcRenderer.invoke('sunvote:disconnect'),
 
+  // Config management
+  writeConfig: (cfg) => ipcRenderer.invoke('sunvote:write-config', cfg),
+
+  // Keypad programming
+  writeKeypadId: (id) => ipcRenderer.invoke('sunvote:write-keypad-id', id),
+  readKeypadId: () => ipcRenderer.invoke('sunvote:read-keypad-id'),
+
   // Voting
   startVoting: (opts) => ipcRenderer.invoke('sunvote:start-voting', opts),
   stopVoting: () => ipcRenderer.invoke('sunvote:stop-voting'),

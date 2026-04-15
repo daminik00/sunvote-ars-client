@@ -16,6 +16,8 @@ export enum CmdCode {
  */
 export enum ScanSubCmd {
   Start = 0xc1,
+  /** Clear — follows Start in the vote-session activation sequence; purpose is to reset the base's session/RF buffer. */
+  Clear = 0xc2,
   Stop = 0xc3,
   Poll = 0xc4,
   Ack = 0xc5,
@@ -45,6 +47,16 @@ export enum SessionState {
   Voting = 'voting',
 }
 
+/**
+ * Button-code → label map for the 6-button bitmap keypad (PVS-W00 family,
+ * including the W00E as used with base PVS-2010-433M).
+ *
+ * The hardware encodes button presses as one-hot bitmap bytes, not sequential
+ * codes — confirmed by capturing all six presses from live hardware on
+ * 2026-04-16: pressing "1" → 0x01, "2" → 0x02, "3" → 0x04, "4" → 0x08,
+ * "5" → 0x10, "6" → 0x20. Unknown codes fall through to the hex fallback in
+ * {@link SunVoteController}.
+ */
 export const BUTTON_LABELS: Map<number, string> = new Map([
   [0x01, '1/A'],
   [0x02, '2/B'],

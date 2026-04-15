@@ -3,8 +3,10 @@
 Minimal Electron app that demonstrates every feature exposed by the SDK:
 
 - `checkDriver()` / `getDriverInstallInfo()` / `openDriverDownloadPage()`
-- `SunVoteController.autoConnect()` and `disconnect()`
-- Base config readout (baseId, channel, key range)
+- `SunVoteController.listPorts()` — port picker with vendor/manufacturer hints
+- `SunVoteController.autoConnect()` / `connect({path})` / `disconnect()`
+- Base config readout (baseId, channel, key range) and `writeConfig()` with editable fields
+- `writeKeypadId()` / `readKeypadId()` — keypad-programming flow for keypads in programming mode
 - `startVoting()` / `stopVoting()` with configurable options
 - Live keypad list with last-press indicators
 - Activity log for state changes, events, and errors

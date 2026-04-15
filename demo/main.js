@@ -86,10 +86,27 @@ ipcMain.handle('ports:list', async () => {
   return SunVoteController.listPorts();
 });
 
-ipcMain.handle('sunvote:connect', async (_e, { debug = false } = {}) => {
+ipcMain.handle('sunvote:connect', async (_e, { debug = false, path = null } = {}) => {
   const ctrl = ensureController();
-  const config = await ctrl.autoConnect({ debug });
+  const config = path
+    ? await ctrl.connect({ path, debug })
+    : await ctrl.autoConnect({ debug });
   return config;
+});
+
+ipcMain.handle('sunvote:write-config', async (_e, config) => {
+  if (!controller) throw new Error('Not connected');
+  await controller.writeConfig(config);
+});
+
+ipcMain.handle('sunvote:write-keypad-id', async (_e, keypadId) => {
+  if (!controller) throw new Error('Not connected');
+  await controller.writeKeypadId(keypadId);
+});
+
+ipcMain.handle('sunvote:read-keypad-id', async () => {
+  if (!controller) throw new Error('Not connected');
+  return controller.readKeypadId();
 });
 
 ipcMain.handle('sunvote:disconnect', async () => {

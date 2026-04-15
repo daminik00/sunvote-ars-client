@@ -23,6 +23,10 @@ function hexDump(buf: Buffer): string {
   return buf.toString('hex').replace(/(.{2})/g, '$1 ').trim();
 }
 
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 /**
  * Low-level serial I/O wrapper for the SunVote PVS-2010 receiver.
  */
@@ -295,10 +299,17 @@ export class SunVoteReceiver {
   /**
    * Start a voting session.
    *
-   * Scan-command "direction" byte is 0xC1 (host → base, "start vote"). The high
-   * nibble 0xC0 is consistent across Scan session commands (Start=C1, Stop=C3,
-   * Poll=C4, Ack/Broadcast=C5) — observed in captured traffic from the original
-   * SunVoteARS Windows client.
+   * Replays the 4-step activation sequence captured from the original SunVoteARS
+   * Windows client. All four steps are required: sending only the C1 packet is
+   * ACK'd by the base but the base never broadcasts the RF wake command, so the
+   * keypads stay asleep and every subsequent poll returns an empty slot (type=FF).
+   *
+   * Sequence (flag byte at payload[3]):
+   *   1. C1 — Start scan with mode/options/min-max
+   *   2. C2 — Clear (presumably resets the base's session state / RF buffer)
+   *   3. C4 — Initial poll (primes the response pipeline)
+   *   4. C5 long packet × 2 — first targeted to the base, second broadcast (arg1=0xC7)
+   *      with a 50ms gap between them so the keypads receive the RF wake signal
    *
    * @param baseId - base station ID
    * @param options - voting parameters
@@ -310,12 +321,44 @@ export class SunVoteReceiver {
     const maxSel = options.maxSelections ?? 0x06;
     const minSel = options.minSelections ?? 0x01;
 
+    // Step 1: C1 start scan
     const startPacket = buildShortPacket(
       CmdCode.Scan, baseId, 0x00, 0xc1, 0x02,
       [mode, numOptions, maxSel, minSel, 0x00],
     );
+    const startResp = await this.sendAndReceive(startPacket);
 
-    return this.sendAndReceive(startPacket);
+    // Step 2: C2 clear
+    const clearPacket = buildShortPacket(
+      CmdCode.Scan, baseId, 0x00, 0xc2, 0x00,
+      Buffer.alloc(5),
+    );
+    await this.sendAndReceive(clearPacket);
+
+    // Step 3: C4 initial poll
+    const initPollPacket = buildShortPacket(
+      CmdCode.Scan, baseId, 0x00, 0xc4, 0x00,
+      Buffer.alloc(5),
+    );
+    await this.sendAndReceive(initPollPacket);
+
+    // Step 4a: C5 long scan, targeted
+    const c5Targeted = buildLongPacket(
+      CmdCode.Scan, baseId, 0x00, 0xc5,
+      Buffer.alloc(19),
+    );
+    await this.sendAndReceive(c5Targeted, 100);
+    await sleep(50);
+
+    // Step 4b: C5 long scan, broadcast (arg1=0xC7). This is the RF wake signal.
+    const c5Broadcast = buildLongPacket(
+      CmdCode.Scan, 0xc7, 0x00, 0xc5,
+      Buffer.alloc(19),
+    );
+    await this.sendAndReceive(c5Broadcast, 100);
+    await sleep(50);
+
+    return startResp;
   }
 
   /**
@@ -332,7 +375,13 @@ export class SunVoteReceiver {
 
   /**
    * Poll keypads for button presses.
-   * Uses the correct order: C5 ACK -> C5 Broadcast(0xC7) -> C4 Poll.
+   *
+   * Mirrors the reference Python implementation: flush input buffer, fire the
+   * three packets in rapid succession (C5 ACK + C5 broadcast + C4 poll) with
+   * 20ms inter-packet gaps, then read whatever the base emits for ~400ms and
+   * extract every complete response packet. Previously we used
+   * send-receive-send-receive-send-receive with individual 100ms timeouts,
+   * which desynced the base's response batching on some firmware revisions.
    *
    * @param baseId - base station ID
    * @param ackByte - acknowledgement byte from previous poll cycle (0 on first call)
@@ -340,43 +389,83 @@ export class SunVoteReceiver {
    */
   async pollKeypads(baseId: number, ackByte: number = 0): Promise<PollResult> {
     const entries: Array<{ keypadId: number; button: number }> = [];
+    if (!this.port?.isOpen) throw new Error('Port is not open');
+    const port = this.port;
 
-    // 1) C5 ACK: long packet with ack byte (flags=0xC5 host→base "scan ack")
+    // Reset assembler + port buffer so we read a clean burst per cycle.
+    this.assembler.reset();
+    await new Promise<void>((resolve, reject) => {
+      port.flush((err) => (err ? reject(err) : resolve()));
+    });
+
+    // 1) C5 ACK with ackByte; 2) C5 broadcast (arg1=0xC7); 3) C4 poll
     const ackData = Buffer.alloc(19);
     ackData[0] = ackByte;
     const ackPacket = buildLongPacket(CmdCode.Scan, baseId, 0x00, 0xc5, ackData);
-    await this.sendAndReceive(ackPacket, 100);
-
-    // 2) C5 Broadcast to all keypads (arg1=0xC7): long packet, all zeros data
     const broadcastPacket = buildLongPacket(CmdCode.Scan, 0xc7, 0x00, 0xc5, Buffer.alloc(19));
-    await this.sendAndReceive(broadcastPacket, 100);
-
-    // 3) C4 Poll: short packet (flags=0xC4 host→base "poll for results")
     const pollPacket = buildShortPacket(CmdCode.Scan, baseId, 0x00, 0xc4, 0x00, Buffer.alloc(5));
-    const pollResp = await this.sendAndReceiveAll(pollPacket, READ_TIMEOUT);
+
+    await this.writeRaw(ackPacket);
+    await sleep(20);
+    await this.writeRaw(broadcastPacket);
+    await sleep(20);
+    await this.writeRaw(pollPacket);
+
+    // Read any responses for 400ms (matches Python reference timing).
+    const received: ParsedPacket[] = [];
+    await new Promise<void>((resolve) => {
+      const deadline = setTimeout(() => {
+        port.removeListener('data', onData);
+        resolve();
+      }, 400);
+      const onData = (data: Buffer): void => {
+        this.log(`RX raw: ${hexDump(data)}`);
+        const packets = this.assembler.feed(data);
+        for (const p of packets) {
+          this.log(`RX parsed: cmd=0x${p.cmd.toString(16)} crcValid=${p.crcValid} len=${p.length}`);
+          received.push(p);
+        }
+      };
+      port.on('data', onData);
+      // Extra insurance: deadline above already calls cleanup on timer fire.
+      deadline;
+    });
 
     let newAckByte = 0;
-
-    for (const resp of pollResp) {
+    for (const resp of received) {
       if (!resp.crcValid) continue;
-      // Response LEN=0x20 (32): payload is 30 bytes
-      // payload[4] = type (0xFF = empty), payload[7] = keypadId, payload[8] = button
-      if (resp.payload.length >= 9) {
-        const type = resp.payload[4];
-        if (type === 0xff) continue; // empty slot
+      // Long response (LEN=0x20): payload[0]=cmd, payload[1..3]=headers, payload[4]=status.
+      // status=0xFF → no keypad data in this row; otherwise keypadId at [7], button at [8].
+      if (resp.payload.length < 9) continue;
+      const status = resp.payload[4];
+      if (status === 0xff) continue;
 
-        const keypadId = resp.payload[7];
-        const button = resp.payload[8];
-        newAckByte = resp.payload[4]; // use type byte as ack
+      const keypadId = resp.payload[7];
+      const button = resp.payload[8];
+      newAckByte = status;
 
-        if (keypadId > 0) {
-          entries.push({ keypadId, button });
-          this.log(`Poll: keypad=${keypadId} button=0x${button.toString(16)}`);
-        }
+      if (keypadId > 0) {
+        entries.push({ keypadId, button });
+        this.log(`Poll: keypad=${keypadId} button=0x${button.toString(16)}`);
       }
     }
 
     return { entries, ackByte: newAckByte };
+  }
+
+  /** Write a packet to the port without reading any response. */
+  private async writeRaw(packet: Buffer): Promise<void> {
+    if (!this.port?.isOpen) throw new Error('Port is not open');
+    const port = this.port;
+    this.log(`TX: ${hexDump(packet)}`);
+    await new Promise<void>((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error('Write timeout')), WRITE_TIMEOUT);
+      port.write(packet, (err) => {
+        clearTimeout(timer);
+        if (err) reject(err);
+        else port.drain((drainErr) => (drainErr ? reject(drainErr) : resolve()));
+      });
+    });
   }
 
   /**

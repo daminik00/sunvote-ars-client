@@ -28,6 +28,13 @@
       <section class="card">
         <h2>Connection</h2>
         <div class="row">
+          <label class="inline">
+            Port
+            <select id="port-select">
+              <option value="">auto-detect</option>
+            </select>
+          </label>
+          <button id="btn-refresh-ports" title="Refresh serial port list">↻</button>
           <button id="btn-connect">Connect</button>
           <button id="btn-disconnect" disabled>Disconnect</button>
           <label class="inline" title="Logs every TX/RX packet to the terminal that launched `npm run demo`. Must be enabled before Connect.">
@@ -42,6 +49,54 @@
         </dl>
       </section>
 
+      <!-- Base config write -->
+      <section class="card">
+        <h2>Write base config</h2>
+        <p class="muted small hint">
+          Reprograms the base station's keypad range and RF channel. Only effective while connected and not voting.
+        </p>
+        <div class="voting-grid">
+          <label class="field">
+            <span class="field-label">Base ID</span>
+            <input type="number" id="write-base-id" min="0" max="255" value="1" />
+          </label>
+          <label class="field">
+            <span class="field-label">Key from</span>
+            <input type="number" id="write-key-from" min="1" max="800" value="1" />
+          </label>
+          <label class="field">
+            <span class="field-label">Key to</span>
+            <input type="number" id="write-key-to" min="1" max="800" value="800" />
+          </label>
+          <label class="field">
+            <span class="field-label">Channel</span>
+            <input type="number" id="write-channel" min="1" max="250" value="200" />
+          </label>
+        </div>
+        <div class="row">
+          <button id="btn-write-config" disabled>Write config</button>
+        </div>
+      </section>
+
+      <!-- Keypad programming -->
+      <section class="card">
+        <h2>Keypad programming</h2>
+        <p class="muted small hint">
+          Put a keypad in programming mode (vendor-specific button combo — consult your hardware manual), then use these to read or assign an ID. Most users never need this — IDs are factory-assigned.
+        </p>
+        <div class="row">
+          <button id="btn-read-keypad-id" disabled>Read keypad ID</button>
+          <span id="read-keypad-id-result" class="muted small">—</span>
+        </div>
+        <div class="row">
+          <label class="inline">
+            Assign ID
+            <input type="number" id="write-keypad-id" min="1" max="800" value="1" />
+          </label>
+          <button id="btn-write-keypad-id" disabled>Write keypad ID</button>
+        </div>
+      </section>
+
       <!-- Voting -->
       <section class="card">
         <h2>Voting</h2>
@@ -51,19 +106,19 @@
         </p>
         <div class="voting-grid">
           <label class="field">
-            <span class="field-label">Answer options (A–F)</span>
-            <input type="number" id="vote-options" min="1" max="6" value="4" />
-            <span class="field-help">How many buttons on the keypad are valid answers (e.g. 4 → only A/B/C/D count).</span>
+            <span class="field-label">Answer options</span>
+            <input type="number" id="vote-options" min="1" max="10" value="2" />
+            <span class="field-help">How many keypad buttons are valid answers for this session.</span>
           </label>
           <label class="field">
             <span class="field-label">Min selections</span>
-            <input type="number" id="vote-min" min="1" max="6" value="1" />
+            <input type="number" id="vote-min" min="1" max="10" value="1" />
             <span class="field-help">Minimum choices voter must make before submitting.</span>
           </label>
           <label class="field">
             <span class="field-label">Max selections</span>
-            <input type="number" id="vote-max" min="1" max="6" value="1" />
-            <span class="field-help">Max choices voter may make. 1 = single-choice; &gt;1 = multi-choice.</span>
+            <input type="number" id="vote-max" min="1" max="10" value="6" />
+            <span class="field-help">Max choices voter may make. Low values (=1) may lock the keypad after the first press — use 6 for exploration.</span>
           </label>
         </div>
         <div class="row">
