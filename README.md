@@ -135,7 +135,8 @@ Subscribe to events with `ctrl.on(event, handler)`.
 
 | Event | Payload | Description |
 |---|---|---|
-| `keypad:press` | `KeypadPress` | A keypad button was pressed (deduplicated). |
+| `keypad:press` | `KeypadPress` | A keypad's *selected* button changed. Deduplicated — two taps of the same button in a row collapse into one event. Best for "currently selected answer" UIs. |
+| `keypad:click` | `KeypadPress` | Every physical tap reported by the base — no dedup. Best for vote tallies and analytics where each tap should count. |
 | `keypad:new` | `number` (keypadId) | A previously unseen keypad was detected. |
 | `state:change` | `(newState, oldState)` | The session state changed. |
 | `base:config` | `BaseConfig` | Base station config was read or written. |
@@ -151,6 +152,8 @@ interface KeypadPress {
   button: number;       // Raw button byte (0x01, 0x02, 0x04, 0x08, 0x10, 0x20)
   buttonLabel: string;  // Human-readable label ("1/A", "2/B", etc.)
   timestamp: number;    // Date.now() when the press was detected
+  counter?: number;     // Raw per-slot byte from the poll response (payload[13]),
+                        // exposed for debugging / custom dedup logic.
 }
 ```
 

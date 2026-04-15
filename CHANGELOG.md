@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-04-16
+
+### Added
+- **New `keypad:click` event** — fires on every physical tap reported by the base, without deduplication. Use for vote tallies and analytics where each individual tap should count. The existing `keypad:press` continues to dedup on button-value change and is best for "currently selected answer" UIs.
+- **`KeypadPress.counter`** — optional raw byte from `payload[13]` of the poll response, exposed for debugging and custom dedup logic.
+
+### Changed
+- README: clarified the two keypad events (`keypad:press` vs `keypad:click`) and when to use each.
+- Demo: new "Click log" table showing every `keypad:click` event with its counter byte.
+
 ## [1.1.2] - 2026-04-16
 
 First release validated end-to-end against live PVS-2010-433M + PVS-W00

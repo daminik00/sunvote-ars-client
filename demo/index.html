@@ -145,16 +145,16 @@
         <ul id="log"></ul>
       </section>
 
-      <!-- Raw poll log -->
+      <!-- Click log -->
       <section class="card">
-        <h2>Raw poll log <span class="muted small">(every `keypad:raw` event)</span></h2>
+        <h2>Click log <span class="muted small">(every `keypad:click` event)</span></h2>
         <p class="muted small hint">
-          Fires once per poll cycle that reports a keypad slot, regardless of
-          whether the button value changed. The `counter` column is
-          <code>payload[13]</code> — use it to observe whether the base
-          differentiates repeated presses of the same button.
+          Fires once per physical tap reported by the base — no dedup. Tapping
+          the same button twice in a row appears as two rows here, whereas
+          the Activity log (above) collapses consecutive same-button taps
+          via <code>keypad:press</code> dedup.
         </p>
-        <table id="raw-table">
+        <table id="click-table">
           <thead>
             <tr><th>Time</th><th>Keypad</th><th>Button</th><th>Counter (hex)</th></tr>
           </thead>

@@ -26,7 +26,7 @@ contextBridge.exposeInMainWorld('sunvote', {
 
   // Events
   onKeypadPress: (cb) => ipcRenderer.on('keypad:press', (_e, p) => cb(p)),
-  onKeypadRaw: (cb) => ipcRenderer.on('keypad:raw', (_e, p) => cb(p)),
+  onKeypadClick: (cb) => ipcRenderer.on('keypad:click', (_e, p) => cb(p)),
   onKeypadNew: (cb) => ipcRenderer.on('keypad:new', (_e, id) => cb(id)),
   onStateChange: (cb) => ipcRenderer.on('state:change', (_e, s) => cb(s)),
   onBaseConfig: (cb) => ipcRenderer.on('base:config', (_e, c) => cb(c)),

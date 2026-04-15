@@ -245,7 +245,7 @@ describe('SunVoteController', () => {
       );
     });
 
-    it('keypad:raw fires on every poll entry, even when the button value is unchanged', async () => {
+    it('keypad:click fires on every poll entry; keypad:press dedups on unchanged button', async () => {
       mockReceiver.pollKeypads
         .mockResolvedValueOnce({
           entries: [{ keypadId: 10, button: 0x01, counter: 0x0a }],
@@ -258,9 +258,9 @@ describe('SunVoteController', () => {
         })
         .mockResolvedValue({ entries: [], ackByte: 0 });
 
-      const rawHandler = vi.fn();
+      const clickHandler = vi.fn();
       const pressHandler = vi.fn();
-      ctrl.on('keypad:raw', rawHandler);
+      ctrl.on('keypad:click', clickHandler);
       ctrl.on('keypad:press', pressHandler);
 
       await ctrl.connect({ path: '/dev/ttyUSB0' });
@@ -268,10 +268,10 @@ describe('SunVoteController', () => {
       await vi.advanceTimersByTimeAsync(60);
       await vi.advanceTimersByTimeAsync(60);
 
-      // :raw fires both times; :press only the first (button unchanged on second poll).
-      expect(rawHandler).toHaveBeenCalledTimes(2);
-      expect(rawHandler.mock.calls[0][0]).toMatchObject({ button: 0x01, counter: 0x0a });
-      expect(rawHandler.mock.calls[1][0]).toMatchObject({ button: 0x01, counter: 0x0b });
+      // :click fires both times; :press only the first (button unchanged on second poll).
+      expect(clickHandler).toHaveBeenCalledTimes(2);
+      expect(clickHandler.mock.calls[0][0]).toMatchObject({ button: 0x01, counter: 0x0a });
+      expect(clickHandler.mock.calls[1][0]).toMatchObject({ button: 0x01, counter: 0x0b });
       expect(pressHandler).toHaveBeenCalledTimes(1);
     });
 

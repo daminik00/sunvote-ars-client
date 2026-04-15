@@ -119,10 +119,20 @@ export interface ConnectionOptions {
 }
 
 export interface SunVoteEvents {
-  /** Deduplicated — only fires when the button value changes for a given keypad. */
+  /**
+   * Deduplicated press — fires when the button *value* changes for a given
+   * keypad. Ideal for "currently selected answer" UIs where the last press
+   * wins. Two taps of the same button in a row collapse into one event;
+   * subscribe to {@link keypad:click} instead if you need every tap.
+   */
   'keypad:press': (press: KeypadPress) => void;
-  /** Raw — fires on every poll cycle where the base reports a non-empty slot. Use when your app needs per-cycle visibility (e.g. to implement custom dedup against the raw `counter` byte). */
-  'keypad:raw': (press: KeypadPress) => void;
+  /**
+   * Every physical tap ("click") on a keypad, as reported by the base. No
+   * dedup — tapping the same button twice in a row fires this event twice.
+   * Use for voting counts, analytics, or any flow that needs per-tap
+   * visibility.
+   */
+  'keypad:click': (press: KeypadPress) => void;
   'keypad:new': (keypadId: number) => void;
   'state:change': (newState: SessionState, oldState: SessionState) => void;
   'base:config': (config: BaseConfig) => void;

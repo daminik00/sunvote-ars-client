@@ -35,7 +35,7 @@ const els = {
   keypadsEmpty: $('keypads-empty'),
   keypadCount: $('keypad-count'),
   log: $('log'),
-  rawTableBody: document.querySelector('#raw-table tbody'),
+  clickTableBody: document.querySelector('#click-table tbody'),
 };
 
 let currentState = 'idle';
@@ -329,7 +329,7 @@ window.sunvote.onKeypadPress((press) => {
   log('success', `Keypad ${press.keypadId} pressed ${press.buttonLabel}`);
 });
 
-window.sunvote.onKeypadRaw((press) => {
+window.sunvote.onKeypadClick((press) => {
   const tr = document.createElement('tr');
   const time = document.createElement('td');
   time.textContent = new Date(press.timestamp).toLocaleTimeString();
@@ -345,10 +345,10 @@ window.sunvote.onKeypadRaw((press) => {
   tr.appendChild(kp);
   tr.appendChild(btn);
   tr.appendChild(counter);
-  els.rawTableBody.insertBefore(tr, els.rawTableBody.firstChild);
+  els.clickTableBody.insertBefore(tr, els.clickTableBody.firstChild);
   // Cap at 100 rows.
-  while (els.rawTableBody.children.length > 100) {
-    els.rawTableBody.removeChild(els.rawTableBody.lastChild);
+  while (els.clickTableBody.children.length > 100) {
+    els.clickTableBody.removeChild(els.clickTableBody.lastChild);
   }
 });
 

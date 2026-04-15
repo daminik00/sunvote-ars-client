@@ -383,17 +383,20 @@ export class SunVoteController extends TypedEmitter<SunVoteEvents> {
         const now = Date.now();
         const rawPress: KeypadPress = { keypadId, button, buttonLabel, timestamp: now, counter };
 
-        // Raw event: fires every poll cycle the base reports this keypad's slot,
-        // regardless of whether the button changed. Useful for custom repeat-press
-        // detection, analytics, or debugging.
-        this.emit('keypad:raw', rawPress);
+        // `keypad:click` — every physical tap reported by the base. No dedup.
+        // The base itself emits one entry per press on the observed hardware,
+        // so subscribers here get one event per physical click.
+        this.emit('keypad:click', rawPress);
 
         if (button === 0x00) {
           this.lastButtonByKeypad.delete(keypadId);
           continue;
         }
 
-        // Deduplicated `keypad:press` event: only fires when the button value changes.
+        // `keypad:press` — deduplicated. Only fires when the button *value*
+        // differs from the last seen button for this keypad. Prevents flooding
+        // if the base or a firmware quirk ever re-reports the same press across
+        // multiple poll cycles.
         const lastButton = this.lastButtonByKeypad.get(keypadId) ?? 0;
         if (button !== lastButton) {
           this.lastButtonByKeypad.set(keypadId, button);

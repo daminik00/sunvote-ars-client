@@ -9,7 +9,8 @@ Minimal Electron app that demonstrates every feature exposed by the SDK:
 - `writeKeypadId()` / `readKeypadId()` — keypad-programming flow for keypads in programming mode
 - `startVoting()` / `stopVoting()` with configurable options
 - Live keypad list with last-press indicators
-- Activity log for state changes, events, and errors
+- Activity log — deduplicated `keypad:press` events + state/config/errors
+- Click log — every `keypad:click` event (per-tap, no dedup), with the raw `counter` byte
 
 ## Running
 
