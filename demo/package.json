@@ -8,7 +8,7 @@
     "start": "electron ."
   },
   "dependencies": {
-    "sunvote-ars-client": "*"
+    "sunvote-ars-client": "file:.."
   },
   "devDependencies": {
     "electron": "^30.0.0"
